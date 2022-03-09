@@ -3,12 +3,32 @@
 
 (() => {
 
+    let  bodyWidth
+
     const onClose = (element) => {
         element.classList.add('close-animation')
         document.body.style.pointerEvents = 'none'
-        timeoutID = setTimeout(() => (element.remove(),document.body.classList.remove('scroll-prohibited'), document.body.style.pointerEvents = 'auto') , 500)
-        
-    } ,
+        timeoutID = setTimeout(() => (element.remove(), document.body.classList.remove('scroll-prohibited'), document.body.style.pointerEvents = 'auto'), 500)
+
+    },
+        showBtnLoadung = () => {
+            const btn = document.querySelector('.form__save'),
+                loading = document.createElement('div')
+            loading.classList.add('btn-loading')
+            loading.id = 'loading'
+            btn.append(loading)
+            Array.from(document.getElementsByTagName("input")).forEach((input) => input.setAttribute('disabled', 'disabled'))
+
+        },
+
+        showTableLoading = () => {
+            const loading = document.createElement('div'),
+                spinner = document.createElement('div')
+            loading.classList.add('loading')
+            spinner.classList.add('spinner')
+            loading.append(spinner)
+            return loading
+        },
         createErrorLine = (text) => {
             const errorLine = document.createElement('span')
             errorLine.classList.add('error__line')
@@ -25,10 +45,12 @@
             requeredNameInputs.reduce((array, item) => [...array, item], contactInputs).forEach(input => input.value.trim().length > 0 || classArray(input).includes('input-error') ? 1 : input.classList.add('input-error'))
 
             status === 422 ? (deleteError(), data.errors.forEach(text => errorElement.append(createErrorLine(text.message)))) : status === 404 || String(status).split('')[0] === '5' ? (deleteError(), errorElement.append(createErrorLine(data.message))) : !data ? (deleteError(), errorElement.append(createErrorLine('Что-то пошло не так...'))) : onClose(element)
-
+            document.getElementById('loading').remove()
+            Array.from(document.getElementsByTagName("input")).forEach((input) => input.removeAttribute('disabled', 'disabled'))
         },
 
         onSave = async ({ formData, element, errorElement }) => {
+            showBtnLoadung()
             const response = await fetch('http://localhost:3000/api/clients', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -40,6 +62,7 @@
         },
 
         onChange = async ({ formData, element, errorElement }, id) => {
+            showBtnLoadung()
             const response = await fetch(`http://localhost:3000/api/clients/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -57,6 +80,7 @@
         },
 
         onDelete = async ({ id, element, errorElement }) => {
+            showBtnLoadung()
             const response = await fetch(`http://localhost:3000/api/clients/${id}`, {
                 method: 'DELETE',
             });
@@ -74,7 +98,7 @@
 
         functionBox = { onSave, onClose, onChange, onDelete },
 
-        addErrorClass = ({element}) => {
+        addErrorClass = ({ element }) => {
             element.addEventListener('input', () => {
                 const classList = Array.from(element.classList)
                 element.value.trim().length > 0 ? classList.forEach((style, index) => style === 'input-error' ? element.classList.remove('input-error') : 1) : classList.includes('input-error') ? 1 : element.classList.add('input-error')
@@ -100,16 +124,20 @@
             search.append(container)
             return search
         },
-        focusModal = () => !!document.querySelector('.modal__form')? document.querySelector('.modal__form').focus() : 1,
+        focusModal = () => !!document.querySelector('.modal__form') ? document.querySelector('.modal__form').focus() : 1,
         changeHighModal = () => {
-const modal = document.querySelector('.modal'),
-form = document.querySelector('.modal__form')
+            const modal = document.querySelector('.modal'),
+                form = document.querySelector('.modal__form')
+              
 
-form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
+            form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : modal.style.alignItems = 'center'
+          
+           
+
         },
 
         createModal = (obj, { onSave, onClose, onChange, onDelete }, btnIndicator, usedBtn) => {
-
+            bodyWidth = document.body.clientWidth
             const modal = document.createElement('div'),
                 closeBack = document.createElement('button'),
                 form = document.createElement('form'),
@@ -131,6 +159,7 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                 confirmText = document.createElement('p'),
                 errorText = document.createElement('div'),
                 container = document.querySelector('.container')
+                
 
             modal.classList.add("modal")
             closeBack.classList.add("modal__back")
@@ -157,22 +186,29 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
             confirmText.textContent = 'Вы действительно хотите удалить данного клиента?'
             form.setAttribute('tabindex', '0')
 
+
+
             inputDataArray.forEach((item, index) => {
                 const label = document.createElement('label'),
                     star = document.createElement('span'),
-                    heading = document.createElement('span')
+                    heading = document.createElement('span'),
+                    copy = document.createElement('button')
 
-                    label.classList.add('form__label'),
+                label.classList.add('form__label'),
                     item.input.classList.add('form__input'),
                     heading.classList.add('form__input-heading')
                 star.classList.add('star')
+                copy.classList.add('copy-btn')
                 star.id = `star-${index + 1}`
                 star.textContent = '*'
-                index < 2 ? (label.append(star, item.input), addErrorClass({element:item.input})) : label.append(item.input);
+                index < 2 ? (label.append(star, item.input), addErrorClass({ element: item.input })) : label.append(item.input);
                 top.append(label)
                 btnIndicator === 0 ? (item.input.placeholder = item.placeholder, item.input.addEventListener('input', () => !item.input.value == '' ? star.remove() : label.prepend(star))) : (heading.textContent = item.placeholder, label.prepend(heading), star.id = `add-changes-star-${index + 1}`)
-
-               
+                if (btnIndicator === 4) {
+                    copy.classList.add('copy')
+                    label.append(copy)
+                    copy.onclick = (e) => (e.preventDefault(), item.input.select(), document.execCommand("copy"))
+                }
             })
             add.append(textBtn)
             middle.append(add)
@@ -215,10 +251,7 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                 })
                 typeArray.forEach((btn, i) => btn.textContent = textBtnArray[i])
                 !!contactData ? textUsage.filter(text => text === contactData.type).length === 0 ? (createInput(), another.textContent = 'Телефон') : 1 : 1
-                close.addEventListener('click', () => {
-                    contact.remove()
-                    middle.append(add)
-                })
+
                 typeArray.slice(1).forEach(btn => (typeList.append(btn), btn.classList.add('choice-btn')))
                 typeArray.forEach(btn => btn.addEventListener('click', (e) => {
                     e.preventDefault()
@@ -230,11 +263,33 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                 })
                 )
                 middle.children.length > 10 ? add.remove() : 1
-                
-               addErrorClass({element: input})
 
+                addErrorClass({ element: input })
+                if (btnIndicator === 4) {
+                    arrow.remove()
+                    add.remove()
+                    typeList.remove()
+                    createInput()
+                    inputAnother.value = contactData.type
+                    type.classList.add('copy')
+                    close.classList.add('copy')
+                    type.onclick = () => {
+                        inputAnother.select()
+                        document.execCommand("copy");
+                    }
+                    close.onclick = (e) => {
+                        e.preventDefault()
+                        input.select()
+                        document.execCommand("copy");
+                    }
+                } else {
+                    close.addEventListener('click', () => {
+                        contact.remove()
+                        middle.append(add)
+                    })
+                }
             }
-            btnIndicator === 1 ? obj.contacts.forEach(contact => createContact(contact)) : 1
+            btnIndicator === 1 || btnIndicator === 4 ? obj.contacts.forEach(contact => createContact(contact)) : 1
             add.addEventListener('click', (e) => {
                 e.preventDefault()
                 createContact()
@@ -243,7 +298,7 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
             form.addEventListener('click', () => {
                 clickCount > 0 ? document.querySelectorAll('.open-choices').forEach(list => {
                     list.classList.toggle('open-choices')
-                    list.parentElement.querySelector('.contact__arrow').classList.toggle('arrow-top')
+                    !!list.parentElement.querySelector('.contact__arrow') ? list.parentElement.querySelector('.contact__arrow').classList.toggle('arrow-top') : 1
                 }) : 1
 
                 document.querySelectorAll('.open-choices').length > 0 ? clickCount++ : clickCount = 0
@@ -268,17 +323,19 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                 }
                 btnIndicator === 0 ? onSave({ formData, element: modal, errorElement: errorText }) : btnIndicator === 1 ? onChange({ formData, element: modal, errorElement: errorText }, obj.id) : onDelete({ id: obj.id, element: modal, errorElement: errorText })
             })
-             closeArray.forEach(btn =>  btn.addEventListener('click', (e) => (e.preventDefault(), onClose(modal), usedBtn.focus()) )) 
-             close.addEventListener('keydown', (e) => e.key === 'Tab' ? focusModal() : 1)
+            closeArray.forEach(btn => btn.addEventListener('click', (e) => (e.preventDefault(), onClose(modal), usedBtn.focus())))
+            close.addEventListener('keydown', (e) => e.key === 'Tab' ? focusModal() : 1)
             bottom.append(errorText, save, cancel)
             form.append(title, top, middle, bottom, close)
             modal.append(form, closeBack)
 
-            btnIndicator === 1 ? (surname.input.value = obj.surname, name.input.value = obj.name, lastName.input.value = obj.lastName, title.after(id), title.textContent = 'Изменить данные', cancel.textContent = 'Удалить клиента') : btnIndicator > 1 ? (modal.classList.add('delete'), top.remove(), middle.remove(), id.remove(), title.after(confirmText), title.textContent = 'Удалить клиента', save.textContent = 'Удалить') : 1
+            btnIndicator === 1 || btnIndicator === 4 ? (modal.classList.add('change-modal'), surname.input.value = obj.surname, name.input.value = obj.name, lastName.input.value = obj.lastName, title.after(id), title.textContent = 'Изменить данные', cancel.textContent = 'Удалить клиента') : btnIndicator === 2 || btnIndicator === 3 ? (modal.classList.add('delete'), top.remove(), middle.remove(), id.remove(), title.after(confirmText), title.textContent = 'Удалить клиента', save.textContent = 'Удалить') : 1
 
-            btnIndicator === 1 ? cancel.addEventListener('click', () => timeoutID = setTimeout(() => (container.append(createModal(obj, functionBox, 3, cancel)), focusModal()), 100) ) : 1
-            btnIndicator === 3 ? closeArray.forEach(btn =>  btn.addEventListener('click', () => timeoutID = setTimeout(() => (container.append(createModal(obj, functionBox, 1, btn)), focusModal()), 100))) : 1
+            btnIndicator === 1 ? cancel.addEventListener('click', () => timeoutID = setTimeout(() => (container.append(createModal(obj, functionBox, 3, cancel)), focusModal()), 100)) : 1
+            btnIndicator === 3 ? closeArray.forEach(btn => btn.addEventListener('click', () => timeoutID = setTimeout(() => (container.append(createModal(obj, functionBox, 1, btn)), focusModal()), 100))) : 1
             closeBack.addEventListener('click', () => onClose(modal))
+
+            btnIndicator === 4 ? (cancel.remove(), save.remove(), title.textContent = 'Данные клиента', [close, closeBack].forEach(item => item.addEventListener('click', () => timeoutID = setTimeout(() => (location = String(location).split('#')[0]), 300)))) : 1
 
             modal.classList.add('open-animation')
             document.body.style.pointerEvents = 'none'
@@ -320,12 +377,12 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                                 valueText = document.createElement('span'),
                                 valueLink = document.createElement('a'),
                                 openTooltip = () => (tooltip.classList.add('visible', 'openning'), timeoutID = setTimeout(() => tooltip.classList.remove('openning'), 200), contactBody.classList.add('hover')),
-                                closTooltip = () => (tooltip.classList.add('closing'), contactBody.classList.add('mouseout'), timeoutId = setTimeout(() => (tooltip.classList.remove('visible', 'closing'), contactBody.classList.remove('hover', 'mouseout')), 200) )
+                                closeTooltip = (timeHover) => (timeout = timeHover > 300 ? 200 : 0, tooltip.classList.add('closing'), contactBody.classList.add('mouseout'), timeoutId = setTimeout(() => (tooltip.classList.remove('visible', 'closing'), contactBody.classList.remove('hover', 'mouseout')), timeout))
 
                             contactTypeArray.every(type => contact.type !== type) ? icon.classList.add(`another-contact-icon`) : (['Телефон', 'Доп. телефон'].some(type => type === contact.type) ? icon.classList.add(`phone-contact-icon`) : icon.classList.add(`${contact.type.toLowerCase()}-contact-icon`))
                             typeText.textContent = `${contact.type}: `
-                            contact.value.includes('@')? ( tooltip.append(typeText, valueLink)) : (tooltip.append(typeText, valueText))   
-                     contact.type.toLowerCase().includes('телефон') ? typeText.remove() : 1
+                            contact.value.includes('@') || contact.value.includes('.com') ? (tooltip.append(typeText, valueLink)) : (tooltip.append(typeText, valueText))
+                            contact.type.toLowerCase().includes('телефон') ? typeText.remove() : 1
                             valueLink.textContent = contact.value
                             valueText.textContent = contact.value
                             typeText.classList.add('contact-type')
@@ -334,17 +391,17 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                             tooltip.classList.add('tooltip')
                             contactBody.classList.add('contact-body')
                             contactBody.setAttribute('tabindex', '0')
-                            valueLink.setAttribute('href',`http://${contact.value}`)
+                            valueLink.setAttribute('href', `http://${contact.value}`)
                             contactBody.append(tooltip, icon)
                             cellBody.append(contactBody)
-                            let keydown = 0
-                            contactBody.addEventListener('keydown', (e)=> {
-                                
-                              e.key === 'Enter' ? keydown === 0 ? (openTooltip(), keydown++ ): (closTooltip(), keydown = 0) : e.key === 'Tab' ? closTooltip() : 1
+                            let keydown = 0, enter, leave, timeHover
+                            contactBody.addEventListener('keydown', (e) => {
+
+                                e.key === 'Enter' || e.key === ' ' ? keydown === 0 ? (openTooltip(), keydown++) : (closeTooltip(), keydown = 0) : e.key === 'Tab' ? closeTooltip() : 1
                             })
 
-                            contactBody.addEventListener('mouseenter', () => openTooltip())
-                            contactBody.addEventListener('mouseleave', () => closTooltip())
+                            contactBody.addEventListener('mouseenter', () => (openTooltip(), enter = new Date()))
+                            contactBody.addEventListener('mouseleave', () => (leave = new Date(), timeHover = leave - enter, closeTooltip(timeHover)))
                         },
                         fillContactCell = () => {
                             const showMore = document.createElement('button')
@@ -376,9 +433,53 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
                     tableRow.append(cell);
                 })
                 const changeBtn = tableRow.lastElementChild.firstElementChild.firstElementChild,
-                deleteBtn = tableRow.lastElementChild.firstElementChild.lastElementChild
+                    deleteBtn = tableRow.lastElementChild.firstElementChild.lastElementChild
                 changeBtn.addEventListener('click', () => (container.append(createModal(client, functionBox, 1, changeBtn)), focusModal(), changeHighModal()))
-                deleteBtn.addEventListener('click', () => (container.append(createModal(client, functionBox, 2, deleteBtn)), focusModal()))
+                deleteBtn.addEventListener('click', () => (container.append(createModal(client, functionBox, 2, deleteBtn)), focusModal(), changeHighModal()))
+
+                const linkTooltip = document.createElement('div'),
+                    body = document.createElement('div'),
+                    link = document.createElement('input'),
+                    btn = document.createElement('button'),
+                    description = document.createElement('span'),
+                    string = String(location).split('#')[0],
+                    URL = `${string}#id${client.id}`
+
+
+                linkTooltip.classList.add('link')
+
+                body.classList.add('link-body')
+                link.classList.add('link-input')
+                btn.classList.add('link-btn')
+                description.classList.add('link-description')
+
+                description.textContent = 'Ссылка на карточку клиента:'
+                btn.textContent = 'COPY'
+                link.value = URL
+                body.append(description, link, btn)
+                linkTooltip.append(body)
+
+                let timeEnter, timeLeave
+
+                tableRow.addEventListener('mouseenter', () => {
+                    timeEnter = new Date()
+                    body.classList.add('openning')
+                    timeoutId = setTimeout(() => body.classList.remove('openning'), 300)
+                    tableRow.append(linkTooltip)
+                    btn.onclick = () => {
+                        link.select()
+                        document.execCommand("copy");
+                    }
+
+                })
+                tableRow.addEventListener('mouseleave', () => {
+                    timeLeave = new Date()
+                    const timeHover = timeLeave - timeEnter
+                    timeHover > 300 ? (linkTooltip.style.pointerEvents = 'none', body.classList.add('closing'), timeoutID = setTimeout(() => (body.classList.remove('closing'), linkTooltip.remove(), linkTooltip.style.pointerEvents = 'auto'), 280)) : linkTooltip.remove()
+
+                })
+
+
                 tableBody.append(tableRow)
             })
             return tableBody
@@ -433,90 +534,92 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
             container.append(title, table, btn)
 
 
-            btn.addEventListener('click', () => (container.append(createModal({}, functionBox, 0), focusModal())))
+            btn.addEventListener('click', () => (container.append(createModal({}, functionBox, 0, btn), focusModal())))
             return container
-        },
-        showLoading = () => {
-            const loading = document.createElement('h2')
-            loading.textContent = 'Loading...'
-            return loading
         }
 
 
     document.addEventListener('DOMContentLoaded', async () => {
+
         const container = createList()
         document.body.append(container)
         const table = document.getElementById('table'),
-            loading = showLoading(),
+            initialTableBody = document.createElement('tbody'),
+            loading = showTableLoading(),
             header = createSearch()
 
+        initialTableBody.classList.add('table__initial-body')
         document.body.prepend(header)
-        table.append(loading)
+        table.append(initialTableBody)
+        initialTableBody.append(loading)
         const clientsList = await getContactList(),
             tableBody = createTableBody(clientsList),
             event = new Event('input'),
-            search = document.querySelector('.search__input')
+            search = document.querySelector('.search__input'),
+            searchError = document.querySelector('.search__empty-error')
         clientsList.sort((a, b) => a.id > b.id ? -1 : 1)
-        loading.remove()
+        initialTableBody.remove()
         table.append(tableBody)
         let timeoutID, tableList = clientsList
-        search.addEventListener('input', async () => {
 
+        search.addEventListener('input', async () => {
+            searchError.textContent = ''
             clearTimeout(timeoutID)
-            !!table.lastElementChild && table.children.length > 1 ? table.lastElementChild.remove() : 1
             const inputValueArray = search.value.trim().split(' ').filter(item => item.length > 0),
+
                 filterList = (list) => {
                     let searchWordList = [],
                         searchClientList = []
                     list.forEach(client => {
-                        let values = Object.values(client).slice(0, -2).reduce((array, item) => [...array, item], [])
-                        values.splice(3, 1)
-                        const dateItems = Object.values(client).slice(-2).map(date => transformTimeFormat(date)).reduce((array, date) => [...array, date[0], date[1]], values),
-                            contactsItems = client.contacts.reduce((array, item) => [...array, Object.values(item)[0], Object.values(item)[1]], dateItems)
-                        searchWordList = contactsItems.reduce((array, item) => [...array, item], searchWordList).sort((a, b) => `${a.toLowerCase()}` < `${b.toLowerCase()}` ? -1 : 1)
-                        inputValueArray.every(word => contactsItems.some(item => item.toLowerCase().includes(`${word.toLowerCase()}`))) ? searchClientList.push(client) : 1
+                        const values = Object.values(client).slice(0, 2).reduce((array, item) => [...array, item], [])
+                        searchWordList.some(item => item.join('').toLowerCase() === values.join('').toLowerCase()) ? 1 : searchWordList.push(values)
+                        searchWordList.sort((a, b) => `${a.join('').toLowerCase()}` < `${b.join('').toLowerCase()}` ? -1 : 1)
+                        inputValueArray.every(word => values.some(item => item.toLowerCase().includes(`${word.toLowerCase()}`))) ? searchClientList.push(client) : 1
                     })
+                  
                     return { words: searchWordList, clients: searchClientList };
                 },
                 clientsListData = filterList(clientsList),
                 searchClientList = clientsListData.clients,
                 listDataForSearch = filterList(searchClientList),
-                toLow = (word) => word.toLowerCase(),
-                getLastItem = (array) => array.slice(-1)[0],
-                showAdvice = (inputValueArray) => {
-                    const uniqueArray = (array) => array.filter((item, index) => array.indexOf(item) == index),
-                        createListByEquality = (array) => uniqueArray(array.map(toLow).filter(word => inputValueArray.map(toLow).every(value => value !== word))),
-                        createListBySubstrMatch = (array) => uniqueArray(array.map(toLow).filter(word => getLastItem(inputValueArray) === word.substring(0, getLastItem(inputValueArray).length))),
-                        isIncludes = (array) => array.some(word => getLastItem(inputValueArray.map(toLow)) === toLow(word)),
-                        connectWords = (array) => array.reduce((array, word) => [...array, [inputValueArray.join(' '), word].join(' ')], []),
-                        connectWordsWithUncompliteInput = (array) => array.reduce((array, word) => [...array, [inputValueArray.slice(0, -1).join(' '), word].join(' ')], [])
-                    return isIncludes(listDataForSearch.words) ? connectWords(createListByEquality(listDataForSearch.words)) : connectWordsWithUncompliteInput(createListBySubstrMatch(listDataForSearch.words))
-                },
                 adviceList = document.querySelector('.search__advice-list'),
                 adviceListBody = document.createElement('div'),
                 showClients = () => inputValueArray.length > 0 ? (table.append(createTableBody(searchClientList)), tableList = searchClientList) : (table.append(createTableBody(clientsList)), tableList = clientsList)
             !!adviceList.firstElementChild ? adviceList.firstElementChild.remove() : 1
             adviceListBody.classList.add('advice-list__body')
             !adviceList.classList.value.includes('searching') ? adviceList.classList.add('searching') : 1
-            inputValueArray.length > 0 ? showAdvice(inputValueArray).forEach(advice => {
+            inputValueArray.length > 0 ? listDataForSearch.words.forEach(advice => {
                 const adviceElement = document.createElement('button')
-                adviceElement.textContent = advice.trim()
+                adviceElement.textContent = advice.join(' ')
                 adviceElement.classList.add('advice-list__item')
                 adviceElement.addEventListener('click', () => (search.value = adviceElement.textContent, adviceList.firstElementChild.remove(), search.dispatchEvent(event), adviceList.classList.toggle('searching'), search.focus()))
-
-
                 adviceListBody.children.length < 10 ? adviceListBody.append(adviceElement) : 1
             }) : 1
-
             adviceList.append(adviceListBody)
-            timeoutID = setTimeout(showClients, 300)
-            document.querySelectorAll('.advice-list__item').forEach(btn => btn.addEventListener('keydown', (e) => {
-                if (document.hasFocus(btn)) {
-                    !!btn.nextElementSibling && e.key === 'ArrowDown' ? btn.nextElementSibling.focus() : 1
-                    !!btn.previousElementSibling && e.key === 'ArrowUp' ? btn.previousElementSibling.focus() : !btn.previousElementSibling && e.key === 'ArrowUp' ? search.focus() : 1
-                }
-            }))
+            table.lastElementChild.append(loading)
+            timeoutID = setTimeout(() => (!!table.lastElementChild && table.children.length > 1 ? table.lastElementChild.remove() : 1, loading.remove(), showClients()), 300)
+            document.querySelectorAll('.advice-list__item').forEach(btn => {
+                let currentClient;
+                btn.addEventListener('focusin', () => {
+                    tableList.forEach((client, index) => btn.textContent === [client.name, client.surname].join(' ') ? currentClient = document.querySelector('.table__body').children[index] : 1)
+                    currentClient.classList.add('wanted-client')
+                    currentClient.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    btn.addEventListener('keydown', (event) => {
+                        event.preventDefault()
+                        !!btn.nextElementSibling && event.key === 'ArrowDown' ? btn.nextElementSibling.focus() : 1
+                        !!btn.previousElementSibling && event.key === 'ArrowUp' ? btn.previousElementSibling.focus() : !btn.previousElementSibling && event.key === 'ArrowUp' ? search.focus() : 1
+                    })
+                })
+                btn.addEventListener('focusout', () => {
+                    currentClient.classList.remove('wanted-client')
+                })
+            })
+           
+            searchClientList.length == 0 ? searchError.textContent = 'Ничего не найдено' : 1
         })
+
+
+
 
         const id = { element: document.getElementById('column-top-1'), listKey: 'id' },
             name = { element: document.getElementById('column-top-2'), listKey: ['surname', 'name', 'lastName'] },
@@ -543,14 +646,21 @@ form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : 1
         tableBtnArray.map(sortColumn)
         let click = 0;
         search.addEventListener('click', () => (document.querySelector('.search__advice-list').classList.toggle('searching'), click++))
-        search.addEventListener('keydown', (e) => e.key === 'ArrowDown' ? document.querySelector('.advice-list__item').focus() : 1)
+        search.addEventListener('keydown', (e) => e.key === 'ArrowDown' ? (e.preventDefault(), document.querySelector('.advice-list__item').focus()) : 1)
         document.body.addEventListener('click', () => {
             click == 0 && document.querySelector('.search__advice-list').classList.value.includes('searching') ? document.querySelector('.search__advice-list').classList.toggle('searching') : 1
 
             click = 0
         })
+
+        window.addEventListener('hashchange', () => {
+            const id = location.hash.split('#').slice(-1).toString().slice(2),
+                client = clientsList.find(client => client.id === id)
+            !!client ? (container.append(createModal(client, functionBox, 4)), focusModal(), changeHighModal()) : 1
+        })
+
     })
 
-    
+
 
 })()
