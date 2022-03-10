@@ -3,7 +3,7 @@
 
 (() => {
 
-    let  bodyWidth
+
 
     const onClose = (element) => {
         element.classList.add('close-animation')
@@ -40,11 +40,13 @@
             const deleteError = () => !!errorElement.children.length > 0 ? document.querySelectorAll('.error__line').forEach(child => child.remove()) : 1,
                 contactInputs = Array.from(element.querySelectorAll('.contact__input')),
                 requeredNameInputs = Array.from(element.querySelectorAll('.form__input')).slice(0, 2),
-                classArray = (item) => Array.from(item.classList)
-
+                classArray = (item) => Array.from(item.classList),
+                idListOfClients = JSON.parse(localStorage.getItem('idListOfClients'))
+                !!data.id && !idListOfClients.includes(data.id) ? idListOfClients.unshift(data.id) : 1
+            
             requeredNameInputs.reduce((array, item) => [...array, item], contactInputs).forEach(input => input.value.trim().length > 0 || classArray(input).includes('input-error') ? 1 : input.classList.add('input-error'))
 
-            status === 422 ? (deleteError(), data.errors.forEach(text => errorElement.append(createErrorLine(text.message)))) : status === 404 || String(status).split('')[0] === '5' ? (deleteError(), errorElement.append(createErrorLine(data.message))) : !data ? (deleteError(), errorElement.append(createErrorLine('Что-то пошло не так...'))) : onClose(element)
+            status === 422 ? (deleteError(), data.errors.forEach(text => errorElement.append(createErrorLine(text.message)))) : status === 404 || String(status).split('')[0] === '5' ? (deleteError(), errorElement.append(createErrorLine(data.message))) : !data ? (deleteError(), errorElement.append(createErrorLine('Что-то пошло не так...'))) : (onClose(element),  localStorage.setItem('idListOfClients', JSON.stringify(idListOfClients)))
             document.getElementById('loading').remove()
             Array.from(document.getElementsByTagName("input")).forEach((input) => input.removeAttribute('disabled', 'disabled'))
         },
@@ -83,10 +85,15 @@
             showBtnLoadung()
             const response = await fetch(`http://localhost:3000/api/clients/${id}`, {
                 method: 'DELETE',
-            });
-            data = await response.json()
+            }),
+                data = await response.json(),
+                idListOfClients = JSON.parse(localStorage.getItem('idListOfClients')),
+                index = idListOfClients.indexOf(idListOfClients.find(clientId => clientId == id))
+                idListOfClients.splice(index, 1)
+          
             showErrorText({ element, errorElement }, data, response.status)
             document.body.classList.remove('scroll-prohibited')
+            localStorage.setItem('idListOfClients', JSON.stringify(idListOfClients))
 
         },
 
@@ -128,11 +135,11 @@
         changeHighModal = () => {
             const modal = document.querySelector('.modal'),
                 form = document.querySelector('.modal__form')
-              
+
 
             form.clientHeight > window.screen.height ? modal.style.alignItems = 'start' : modal.style.alignItems = 'center'
-          
-           
+
+
 
         },
 
@@ -159,7 +166,7 @@
                 confirmText = document.createElement('p'),
                 errorText = document.createElement('div'),
                 container = document.querySelector('.container')
-                
+
 
             modal.classList.add("modal")
             closeBack.classList.add("modal__back")
@@ -348,6 +355,8 @@
         transformTimeFormat = (date) => [date.slice(0, 10).split('-').reverse().join('.'), [Number(date.slice(11, 13)) + 3, date.slice(14, 16)].join(':')],
 
         createTableBody = (list) => {
+            idListOfClients = list.reduce((array, client) => [...array, client.id], [])
+            localStorage.setItem('idListOfClients', JSON.stringify(idListOfClients))
             const tableBody = document.createElement('tbody'),
                 container = document.getElementById('container')
             tableBody.classList.add('table__body')
@@ -533,7 +542,6 @@
             table.append(tableHead)
             container.append(title, table, btn)
 
-
             btn.addEventListener('click', () => (container.append(createModal({}, functionBox, 0, btn), focusModal())))
             return container
         }
@@ -546,23 +554,30 @@
         const table = document.getElementById('table'),
             initialTableBody = document.createElement('tbody'),
             loading = showTableLoading(),
-            header = createSearch()
+            header = createSearch(),
+            searchValue = localStorage.getItem('searchValue'),
+            idListOfClients = JSON.parse(localStorage.getItem('idListOfClients'))
 
         initialTableBody.classList.add('table__initial-body')
         document.body.prepend(header)
         table.append(initialTableBody)
         initialTableBody.append(loading)
+
         const clientsList = await getContactList(),
-            tableBody = createTableBody(clientsList),
-            event = new Event('input'),
+            clienstsListFormStorage = !!idListOfClients ? idListOfClients.reduce((array, id) => [...array, clientsList.find(client => id == client.id)], []) : [],
+            tableBody = !!idListOfClients ? createTableBody(clienstsListFormStorage) : createTableBody(clientsList),
+            eventInput = new Event('input'),
             search = document.querySelector('.search__input'),
             searchError = document.querySelector('.search__empty-error')
+ 
+        search.value = !!searchValue ? searchValue : ''
         clientsList.sort((a, b) => a.id > b.id ? -1 : 1)
         initialTableBody.remove()
         table.append(tableBody)
         let timeoutID, tableList = clientsList
 
         search.addEventListener('input', async () => {
+
             searchError.textContent = ''
             clearTimeout(timeoutID)
             const inputValueArray = search.value.trim().split(' ').filter(item => item.length > 0),
@@ -576,7 +591,7 @@
                         searchWordList.sort((a, b) => `${a.join('').toLowerCase()}` < `${b.join('').toLowerCase()}` ? -1 : 1)
                         inputValueArray.every(word => values.some(item => item.toLowerCase().includes(`${word.toLowerCase()}`))) ? searchClientList.push(client) : 1
                     })
-                  
+
                     return { words: searchWordList, clients: searchClientList };
                 },
                 clientsListData = filterList(clientsList),
@@ -585,6 +600,7 @@
                 adviceList = document.querySelector('.search__advice-list'),
                 adviceListBody = document.createElement('div'),
                 showClients = () => inputValueArray.length > 0 ? (table.append(createTableBody(searchClientList)), tableList = searchClientList) : (table.append(createTableBody(clientsList)), tableList = clientsList)
+
             !!adviceList.firstElementChild ? adviceList.firstElementChild.remove() : 1
             adviceListBody.classList.add('advice-list__body')
             !adviceList.classList.value.includes('searching') ? adviceList.classList.add('searching') : 1
@@ -592,7 +608,7 @@
                 const adviceElement = document.createElement('button')
                 adviceElement.textContent = advice.join(' ')
                 adviceElement.classList.add('advice-list__item')
-                adviceElement.addEventListener('click', () => (search.value = adviceElement.textContent, adviceList.firstElementChild.remove(), search.dispatchEvent(event), adviceList.classList.toggle('searching'), search.focus()))
+                adviceElement.addEventListener('click', () => (search.value = adviceElement.textContent, adviceList.firstElementChild.remove(), search.dispatchEvent(eventInput), adviceList.classList.toggle('searching'), search.focus()))
                 adviceListBody.children.length < 10 ? adviceListBody.append(adviceElement) : 1
             }) : 1
             adviceList.append(adviceListBody)
@@ -606,16 +622,20 @@
                     currentClient.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     btn.addEventListener('keydown', (event) => {
                         event.preventDefault()
+                        event.key === 'Enter' ? (search.value = btn.textContent, search.dispatchEvent(eventInput), adviceList.classList.toggle('searching'), search.focus()) : 1
                         !!btn.nextElementSibling && event.key === 'ArrowDown' ? btn.nextElementSibling.focus() : 1
                         !!btn.previousElementSibling && event.key === 'ArrowUp' ? btn.previousElementSibling.focus() : !btn.previousElementSibling && event.key === 'ArrowUp' ? search.focus() : 1
+
                     })
                 })
                 btn.addEventListener('focusout', () => {
                     currentClient.classList.remove('wanted-client')
                 })
+
             })
-           
+
             searchClientList.length == 0 ? searchError.textContent = 'Ничего не найдено' : 1
+            localStorage.setItem('searchValue', `${inputValueArray.join(' ')}`)
         })
 
 
