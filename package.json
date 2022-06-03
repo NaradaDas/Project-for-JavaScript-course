@@ -1,7 +1,7 @@
 {
   "scripts": {
     "backend": "node crm-backend/index.js",
-    "start": "serve"
+    "serve": "serve"
   },
   "devDependencies": {
     "serve": "^13.0.2"

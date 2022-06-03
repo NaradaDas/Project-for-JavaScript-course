@@ -61,6 +61,7 @@
                 data = await response.json()
             showErrorText({ element, errorElement }, data, response.status)
             document.body.classList.remove('scroll-prohibited')
+            location.reload()
         },
 
         onChange = async ({ formData, element, errorElement }, id) => {
@@ -78,10 +79,12 @@
             data = await response.json()
             showErrorText({ element, errorElement }, data, response.status)
             document.body.classList.remove('scroll-prohibited')
+            location.reload()
 
         },
 
         onDelete = async ({ id, element, errorElement }) => {
+
             showBtnLoadung()
             const response = await fetch(`http://localhost:3000/api/clients/${id}`, {
                 method: 'DELETE',
@@ -94,6 +97,7 @@
             showErrorText({ element, errorElement }, data, response.status)
             document.body.classList.remove('scroll-prohibited')
             localStorage.setItem('idListOfClients', JSON.stringify(idListOfClients))
+            location.reload()
 
         },
 
@@ -131,7 +135,7 @@
             search.append(container)
             return search
         },
-        focusModal = () => !!document.querySelector('.modal__form') ? document.querySelector('.modal__form').focus() : 1,
+        focusModal = () => !!document.querySelector('.modal__form') ? document.querySelector('.modal__form').focus() : '',
         changeHighModal = () => {
             const modal = document.querySelector('.modal'),
                 form = document.querySelector('.modal__form')
